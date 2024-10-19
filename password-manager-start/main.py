@@ -1,7 +1,10 @@
+import json
 from tkinter import *
 from tkinter import messagebox, Entry
 import random
 import pyperclip
+from matplotlib.font_manager import json_dump
+
 
 # ---------------------------- PASSWORD GENERATOR ------------------------------- #
 
@@ -22,14 +25,51 @@ def generate_password():
     random.shuffle(password_list)
 
     password = "".join(password_list)
-    print(password)
     if len(password_input.get()) == 0:
         password_input.insert(0,password)
         pyperclip.copy(str(password))
 
 # ---------------------------- SAVE PASSWORD ------------------------------- #
-def add():
 
+def read_write(data_format):
+    try:
+        with open("data.json", "r") as data_file:
+
+            data = json.load(data_file)
+
+    except FileNotFoundError:
+        with open("data.json", "w") as data_file:
+            json.dump(data_format, data_file, indent=4)
+
+    else:
+        data.update(data_format)
+
+        with open("data.json", "w") as data_file:
+            json.dump(data, data_file, indent=4)
+
+    finally:
+        website_user_input.delete(0, 'end')
+        email_username_input.delete(0, 'end')
+        password_input.delete(0, 'end')
+
+
+def search_validation():
+    try:
+        with open("data.json", "r") as data_file:
+            data = json.load(data_file)
+    except FileNotFoundError:
+        messagebox.showerror(title="Oops", message="The database is empty")
+        return False
+
+    return True
+
+def add():
+    data_format = {
+        website_user_input.get(): {
+            "email": email_username_input.get(),
+            "password": password_input.get(),
+        }
+    }
 
     if len(website_user_input.get()) == 0 or len(email_username_input.get()) == 0 or len(password_input.get()) == 0:
         messagebox.showerror(title="Oops", message="Dont leave any fields empty!")
@@ -37,12 +77,22 @@ def add():
         valid = messagebox.askokcancel(title=website_user_input.get(), message=f"These are the details entered: \nEmail/Username: {email_username_input.get()}\n Password: {password_input.get()}\n")
 
         if valid:
-            file = open("passwords.txt", "a")
-            file.write(f"website: {website_user_input.get()} | Email/Username: {email_username_input.get()} | Password: {password_input.get()}\n")
-            website_user_input.delete(0,'end')
-            email_username_input.delete(0,'end')
-            password_input.delete(0,'end')
-            file.close()
+            read_write(data_format)
+
+
+def search():
+        if len(website_user_input.get()) == 0:
+            messagebox.showerror(title="Oops", message="The field is empty")
+        else:
+            if search_validation():
+                with open("data.json", "r") as data_file:
+                    data = json.load(data_file)
+                    if website_user_input.get() in data:
+                        messagebox.showinfo(title=website_user_input.get(),
+                                                       message=f"Here is the login information: \nEmail/Username: {data[website_user_input.get()]["email"]}\n Password: {data[website_user_input.get()]["password"]}\n")
+                    else:
+                        messagebox.showinfo(title=website_user_input.get(),
+                                            message=f"There is no {website_user_input.get()} website in the database\n")
 
 
 # ---------------------------- UI SETUP ------------------------------- #
@@ -65,13 +115,12 @@ email_username_label.grid(column=0,row=2,columnspan=1)
 password_label = Label(text="Password:", bg="white")
 password_label.grid(column=0,row=3)
 
-website_user_input = Entry(window,width=35)
-website_user_input.grid(row=1,column=1, columnspan=2)
+website_user_input = Entry(window,width=16)
+website_user_input.grid(row=1,column=1)
 website_user_input.focus()
 
 email_username_input = Entry(window,width=35)
 email_username_input.grid(row=2,column=1, columnspan=2 )
-email_username_input.insert(0, "Somthing@hotmail.com")
 
 password_input: Entry = Entry(window,width=16)
 password_input.grid(row=3, column=1)
@@ -82,7 +131,8 @@ generate_password_button.grid(row=3, column=2)
 add_button = Button(text="Add", bg="white", width=32, height=0, command=add)
 add_button.grid(row=4, column=1, columnspan=2)
 
-
+search_button = Button(text="Search",bg="White", width=15,command=search)
+search_button.grid(row=1, column=2)
 
 
 window.mainloop()
